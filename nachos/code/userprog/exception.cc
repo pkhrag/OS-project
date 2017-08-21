@@ -26,7 +26,7 @@
 #include "syscall.h"
 #include "console.h"
 #include "synch.h"
-
+#include "translate.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -74,7 +74,10 @@ void
 ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-    int memval, vaddr, printval, tempval, exp;
+    int memval, vaddr, printval, tempval, exp, userVirtualAddress, i;
+	unsigned int userVpgnumber, userOffset, userPPN, pageTableSize;
+	bool userFlag;
+	TranslationEntry *userEntry, *tlb, *KernelPageTable;
     unsigned printvalus;        // Used for printing in hex
     if (!initializedConsoleSemaphores) {
        readAvail = new Semaphore("read avail", 0);
@@ -157,7 +160,60 @@ ExceptionHandler(ExceptionType which)
        machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
        machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
        machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
-    } else {
+    } else if ((which == SyscallException) && (type == SysCall_GetReg)) {
+		machine->WriteRegister(2, machine->ReadRegister(machine->ReadRegister(4)));
+       // Advance program counters.
+       machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+       machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+       machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+	} else if ((which == SyscallException) && (type == SysCall_GetPA)) { 
+		userVirtualAddress = machine->ReadRegister(4);
+		pageTableSize = machine->pageTableSize;
+		tlb = machine->tlb;
+		KernelPageTable = machine->KernelPageTable;
+		ASSERT((tlb == NULL) || (KernelPageTable == NULL))
+		ASSERT((tlb != NULL) || (KernelPageTable != NULL))
+		userVpgnumber = userVirtualAddress / PageSize;
+		userOffset = userVirtualAddress % PageSize;
+
+		if (userVpgnumber >= pageTableSize){
+			userFlag = true;
+			machine->WriteRegister(2, -1);
+		} else {
+			userEntry = NULL;				
+			if (tlb == NULL){
+				if(KernelPageTable[userVpgnumber].valid){
+					userEntry = &KernelPageTable[userVpgnumber];
+				}
+			} else {
+				for(i = 0; i <= TLBSize; i++){
+					if((tlb[i].valid) && (tlb[i].virtualPage == userVpgnumber)) {
+						userEntry = &tlb[i];
+						userEntry->use = true;
+						break;
+					}
+				}
+			}
+			if (userEntry != NULL) {
+				userPPN = userEntry->physicalPage;
+				if (userPPN >= NumPhysPages){
+					userFlag = true;
+					machine->WriteRegister(2, -1);
+				}
+			} else {
+				machine->WriteRegister(2, -1);
+			}
+		}
+		if (!userFlag){
+			machine->WriteRegister(2, (userOffset +(userPPN*PageSize)));
+		} 
+
+	   // Advance program counters.
+       machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+       machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+       machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+		
+	} else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
     }

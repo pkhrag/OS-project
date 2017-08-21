@@ -199,7 +199,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	return AddressErrorException;
     }
     
-    // we must have either a TLB or a page table, but not both!
+   // we must have either a TLB or a page table, but not both!
     ASSERT(tlb == NULL || KernelPageTable == NULL);	
     ASSERT(tlb != NULL || KernelPageTable != NULL);	
 
