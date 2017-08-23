@@ -49,7 +49,7 @@
 // The SPARC and MIPS only need 10 registers, but the Snake needs 18.
 // For simplicity, this is just the max over all architectures.
 #define MachineStateSize 18 
-
+#define MaxThreads 1024
 
 // Size of the thread's private execution stack.
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
@@ -99,6 +99,8 @@ class NachOSThread {
     void CheckOverflow();   			// Check if thread has 
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
+	int getPID() { return pid;} 
+	int getPPID() { return ppid; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
 

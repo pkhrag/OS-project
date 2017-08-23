@@ -37,7 +37,7 @@ class Statistics {
     int numPacketsRecvd;	// number of packets received over the network
 
     Statistics(); 		// initialize everything to zero
-
+	int getTotalTicks(){ return totalTicks; }
     void Print();		// print collected statistics
 };
 

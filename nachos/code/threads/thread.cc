@@ -32,8 +32,16 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
+int start = 1; // starting from index 100 to leave first 100 system processes
+bool pids[MaxThreads];
+
 NachOSThread::NachOSThread(char* threadName)
 {
+	while(pids[start])	start++;
+	pid = start;
+	pids[start] = true;
+	if (currentThread == NULL) {ppid = 0; }
+	else {	ppid = currentThread->getPID();}
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -63,6 +71,7 @@ NachOSThread::~NachOSThread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+	pids[pid] = false;
 }
 
 //----------------------------------------------------------------------
@@ -130,7 +139,7 @@ NachOSThread::CheckOverflow()
 // 	Called by ThreadRoot when a thread is done executing the 
 //	forked procedure.
 //
-// 	NOTE: we don't immediately de-allocate the thread data structure 
+/// 	NOTE: we don't immediately de-allocate the thread data structure 
 //	or the execution stack, because we're still running in the thread 
 //	and we're still on the stack!  Instead, we set "threadToBeDestroyed", 
 //	so that ProcessScheduler::ScheduleThread() will call the destructor, once we're

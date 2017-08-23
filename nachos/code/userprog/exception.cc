@@ -213,6 +213,26 @@ ExceptionHandler(ExceptionType which)
        machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
        machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
 		
+	} else if ((which == SyscallException) && (type == SysCall_GetPID)) {
+		machine->WriteRegister(2, currentThread->getPID());
+	   // Advance program counters.
+       machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+       machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+       machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+
+	} else if ((which == SyscallException) && (type == SysCall_GetPPID)) {
+		machine->WriteRegister(2, currentThread->getPPID());
+	   // Advance program counters.
+       machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+       machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+       machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+
+	} else if ((which == SyscallException) && (type == SysCall_Time)) {
+		machine->WriteRegister(2, stats->getTotalTicks());
+		// Advnace program counters
+		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg + 4));
 	} else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
