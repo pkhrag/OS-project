@@ -5,6 +5,10 @@ main()
 {
     int array[SIZE], i, sum=0;
 
+    for (i=0; i<SIZE; i++) array[i] = i;
+    syscall_wrapper_PrintString("We are currently at PC: ");
+    syscall_wrapper_PrintIntHex(syscall_wrapper_GetReg(34));
+    syscall_wrapper_PrintChar('\n');
     syscall_wrapper_PrintString("Starting physical address of array: ");
     syscall_wrapper_PrintInt(syscall_wrapper_GetPA((unsigned)array));
     syscall_wrapper_PrintChar('\n');

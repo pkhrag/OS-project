@@ -157,7 +157,37 @@ ExceptionHandler(ExceptionType which)
        machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
        machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
        machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
-    } else {
+    }
+    else if((which == SyscallException) && (type == SysCall_GetReg)){
+       int reg = machine->ReadRegister(4);
+        if (reg<0 || reg >39) {
+            printf("Register number out of range\n");
+            ASSERT(FALSE);
+        }
+        else{
+            machine->WriteRegister(2, machine->ReadRegister(reg));
+            // Advance program counters.
+            machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+            machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+            machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+        }
+    }
+    else if((which == SyscallException) && (type == SysCall_GetPA)){
+        vaddr = machine->ReadRegister(4);
+        int paddr;
+        if(machine->Translate(vaddr, &paddr, 4, FALSE) == NoException){
+            machine->WriteRegister(2, paddr);
+        }
+        else {
+            machine->WriteRegister(2, -1);
+        }
+        // Advance program counters.
+        machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+        machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+        machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+        
+    }
+    else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
     }
