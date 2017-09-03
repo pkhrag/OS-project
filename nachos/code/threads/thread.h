@@ -88,6 +88,7 @@ class NachOSThread {
 					// is called
 
     // basic thread operations
+    int pid, ppid;			// My pid and my parent's pid
 
     void ThreadFork(VoidFunctionPtr func, int arg); 	// Make thread run (*func)(arg)
     void YieldCPU();  				// Relinquish the CPU if any 
@@ -115,7 +116,6 @@ class NachOSThread {
     					// Allocate a stack for thread.
 					// Used internally by ThreadFork()
 
-    int pid, ppid;			// My pid and my parent's pid
 
 #ifdef USER_PROGRAM
 // A thread running a user program actually has *two* sets of CPU registers -- 

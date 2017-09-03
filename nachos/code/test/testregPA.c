@@ -5,6 +5,16 @@ main()
 {
     int array[SIZE], i, sum=0;
 
+    syscall_wrapper_PrintString("PID of the current process is: ");
+    syscall_wrapper_PrintInt(syscall_wrapper_GetPID());
+    syscall_wrapper_PrintChar('\n');
+    syscall_wrapper_PrintString("PID of the parent process is: ");
+    syscall_wrapper_PrintInt(syscall_wrapper_GetPPID());
+    syscall_wrapper_PrintChar('\n');
+    syscall_wrapper_PrintString("Total ticks: ");
+    syscall_wrapper_PrintInt(syscall_wrapper_GetTime());
+    syscall_wrapper_PrintChar('\n');
+
     for (i=0; i<SIZE; i++) array[i] = i;
     syscall_wrapper_PrintString("We are currently at PC: ");
     syscall_wrapper_PrintIntHex(syscall_wrapper_GetReg(34));

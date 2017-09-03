@@ -32,12 +32,20 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
+int count = 1;
+
 NachOSThread::NachOSThread(char* threadName)
 {
     name = threadName;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
+    pid = count;
+    count++;
+    if (pid == 1) 
+        ppid = 0;
+    else
+        ppid = currentThread->pid;
 #ifdef USER_PROGRAM
     space = NULL;
     stateRestored = true;
