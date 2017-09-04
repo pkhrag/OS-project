@@ -5,13 +5,18 @@ main()
 {
     int array[SIZE], i, sum=0;
 
+    syscall_wrapper_PrintString("Total ticks earlier: ");
+    syscall_wrapper_PrintInt(syscall_wrapper_GetTime());
+    syscall_wrapper_PrintChar('\n');
     syscall_wrapper_PrintString("PID of the current process is: ");
     syscall_wrapper_PrintInt(syscall_wrapper_GetPID());
     syscall_wrapper_PrintChar('\n');
+    syscall_wrapper_PrintString("Feeling tired :(, sleeping for sometime\n");
+    syscall_wrapper_Sleep(90000000);
     syscall_wrapper_PrintString("PID of the parent process is: ");
     syscall_wrapper_PrintInt(syscall_wrapper_GetPPID());
     syscall_wrapper_PrintChar('\n');
-    syscall_wrapper_PrintString("Total ticks: ");
+    syscall_wrapper_PrintString("Total ticks after: ");
     syscall_wrapper_PrintInt(syscall_wrapper_GetTime());
     syscall_wrapper_PrintChar('\n');
 

@@ -17,6 +17,7 @@ ProcessScheduler *scheduler;			// the ready list
 Interrupt *interrupt;			// interrupt status
 Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
+List *queue = new List();
 					// for invoking context switches
 
 #ifdef FILESYS_NEEDED
@@ -61,8 +62,23 @@ extern void Cleanup();
 static void
 TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode)
-	interrupt->YieldOnReturn();
+    if (interrupt->getStatus() != IdleMode){
+        IntStatus oldLevel = interrupt->SetLevel(IntOff);
+        while(!queue->IsEmpty()){
+           NachOSThread *thread;
+           int tick;
+           thread = (NachOSThread*)queue->SortedRemove(&tick);
+           if (tick <= stats->totalTicks) {
+               scheduler->MoveThreadToReadyQueue(thread);
+               interrupt->YieldOnReturn();
+           }
+           else{
+               queue->SortedInsert(thread, tick);
+               break;
+           }
+        }
+        (void) interrupt->SetLevel(oldLevel);
+    }
 }
 
 //----------------------------------------------------------------------
