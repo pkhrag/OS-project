@@ -29,7 +29,9 @@
 
 ProcessScheduler::ProcessScheduler()
 { 
-    listOfReadyThreads = new List; 
+    listOfReadyThreads = new List;
+	maxvalue = 0;
+	sleepThreads = new(ThreadNode*[MaxThreads]);
 } 
 
 //----------------------------------------------------------------------
@@ -144,4 +146,44 @@ ProcessScheduler::Print()
 {
     printf("Ready list contents:\n");
     listOfReadyThreads->Mapcar((VoidFunctionPtr) ThreadPrint);
+}
+// code for implementing the ThreadNode in a heap structure
+void ProcessScheduler::addToSleepThreads(NachOSThread* thread, int waketick){
+	ThreadNode* noden = new ThreadNode;
+	noden->thread = thread;
+	noden->waketick = waketick;
+	sleepThreads[maxvalue] = noden;
+	int i = maxvalue;
+	maxvalue++;
+	ThreadNode *tmp;
+	while((sleepThreads[i]->waketick < sleepThreads[i/2]->waketick) && (i > 0)){
+		tmp = sleepThreads[i/2];
+		sleepThreads[i/2] = sleepThreads[i];
+		sleepThreads[i] = tmp;
+	}
+}
+// code getting minimum wake time thread from the min heap
+int ProcessScheduler::getMinWakeTick(){
+	if (sleepThreads[0] != NULL) return sleepThreads[0]->waketick;
+	return (stats->getTotalTicks() + 1);
+}
+NachOSThread* ProcessScheduler::removeSleepThread(){
+	NachOSThread* minThread = sleepThreads[0]->thread;
+	delete sleepThreads[0];
+	sleepThreads[0] = sleepThreads[maxvalue--];
+	int i=0;
+	while((i < maxvalue) && (sleepThreads[i]->waketick >sleepThreads[2*(i+1)]->waketick || sleepThreads[i]->waketick > sleepThreads[2*(i+1) - 1]->waketick )){
+		int j = 2*(i+1);
+		int k = 2*(i+1) - 1;
+		ThreadNode* tmp;
+		if (sleepThreads[k]->waketick < sleepThreads[j]->waketick){
+			tmp = sleepThreads[k];
+			sleepThreads[k] = sleepThreads[j];
+			sleepThreads[j] = tmp;
+		}
+		tmp = sleepThreads[i];
+		sleepThreads[i] = sleepThreads[j];
+		sleepThreads[j] = tmp;
+	}
+	return minThread;
 }

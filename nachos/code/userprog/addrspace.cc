@@ -26,7 +26,7 @@
 //	object file header, in case the file was generated on a little
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
-
+int global_mem_start=0;
 static void 
 SwapHeader (NoffHeader *noffH)
 {
@@ -56,6 +56,26 @@ SwapHeader (NoffHeader *noffH)
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
+
+ProcessAddressSpace::ProcessAddressSpace(unsigned int numSize, TranslationEntry* parentTable){
+	TranslationEntry* KernelPageTable = new TranslationEntry[numSize];
+	int start = global_mem_start;
+	for(int i=0;i<numSize;i++){
+		KernelPageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+		KernelPageTable[i].physicalPage = start;
+		KernelPageTable[i].valid = parentTable[i].valid;
+		KernelPageTable[i].use = parentTable[i].use;
+		KernelPageTable[i].dirty = parentTable[i].dirty;
+		KernelPageTable[i].readOnly = parentTable[i].readOnly;  // if the code segment was entirely on 
+	}
+	for (int j=0; j < numSize; j++){
+		int pmem = parentTable[j].physicalPage;
+		int mem = KernelPageTable[j].physicalPage;
+		for(int k=0;k<PageSize;k++)
+			machine->mainMemory[mem+k] = machine->mainMemory[pmem+k];
+	}
+	global_mem_start += PageSize*numSize;
+}
 
 ProcessAddressSpace::ProcessAddressSpace(OpenFile *executable)
 {
@@ -112,7 +132,7 @@ ProcessAddressSpace::ProcessAddressSpace(OpenFile *executable)
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
-
+	global_mem_start += size;
 }
 
 //----------------------------------------------------------------------

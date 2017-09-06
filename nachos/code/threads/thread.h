@@ -73,13 +73,20 @@ extern void ThreadPrint(int arg);
 //  Some threads also belong to a user address space; threads
 //  that only run in the kernel have a NULL address space.
 
+struct NodeProcess {
+	int pid;
+	int ppid;
+	NodeProcess * pointer;
+};
+
+
 class NachOSThread {
   private:
     // NOTE: DO NOT CHANGE the order of these first two members.
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     int machineState[MachineStateSize];  // all registers except for stackTop
-
+	int instructionCount;
   public:
     NachOSThread(char* debugName);		// initialize a Thread 
     ~NachOSThread(); 				// deallocate a Thread
@@ -94,13 +101,16 @@ class NachOSThread {
 						// other thread is runnable
     void PutThreadToSleep();  				// Put the thread to sleep and 
 						// relinquish the processor
+	void addInstruction(){instructionCount++;}
+	int getIC() { return instructionCount;}
+	void setInstructionCount(int count){instructionCount = count ;}
     void FinishThread();  				// The thread is done executing
-    
+	void putStatus(ThreadStatus newStatus){status = newStatus;} 
     void CheckOverflow();   			// Check if thread has 
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
-	int getPID() { return pid;} 
-	int getPPID() { return ppid; }
+	int getPID() { return pid;}
+	int getPPID();
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
 
@@ -132,6 +142,11 @@ class NachOSThread {
     void RestoreUserState();		// restore user-level register state
 
     ProcessAddressSpace *space;			// User code this thread is running.
+	void copyMachineState(int*);
+	int* getMachineState();
+	void SetRegister(int reg, int val){userRegisters[reg] = val;}
+	ProcessAddressSpace* getProcessSpace() { ProcessAddressSpace* pointer = space; return pointer;}
+	void setProcessSpace(ProcessAddressSpace*);
 #endif
 };
 

@@ -30,18 +30,40 @@
 //	NachOSThread::ThreadFork.
 //
 //	"threadName" is an arbitrary string, useful for debugging.
-//----------------------------------------------------------------------
-
-int start = 1; // starting from index 100 to leave first 100 system processes
+int counter = 10;
 bool pids[MaxThreads];
-
+int ppids[MaxThreads];
+NodeProcess **children;
+int size = 0;
+bool flag = false;
+void initialize(){
+	flag = true;
+	children = new(NodeProcess*[MaxThreads]);
+	return ;
+}
 NachOSThread::NachOSThread(char* threadName)
 {
-	while(pids[start])	start++;
-	pid = start;
-	pids[start] = true;
-	if (currentThread == NULL) {ppid = 0; }
+	if (!flag)	initialize();
+	if (size == MaxThreads)	return ;
+	size++;
+	if (currentThread == NULL) {ppid = 1; }
 	else {	ppid = currentThread->getPID();}
+	NodeProcess * noden;
+	if (children[ppid] == NULL) {
+		children[ppid] = new(NodeProcess);
+		noden = children[ppid];
+	} else{
+		NodeProcess * t = children[ppid];
+		while(t->pointer != NULL)	t = t->pointer;
+		noden = new(NodeProcess);
+		t->pointer = noden;
+	}
+	while(pids[counter])
+		counter = (counter + 1) % MaxThreads;
+	pid = counter;
+	noden->pid = pid;
+	noden->pointer = NULL;
+	ppids[pid] = ppid;
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -50,6 +72,7 @@ NachOSThread::NachOSThread(char* threadName)
     space = NULL;
     stateRestored = true;
 #endif
+	instructionCount++;
 }
 
 //----------------------------------------------------------------------
@@ -72,6 +95,14 @@ NachOSThread::~NachOSThread()
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
 	pids[pid] = false;
+	NodeProcess *p = children[ppid];
+	NodeProcess *t = p;
+	while(p != NULL){
+		t = p->pointer;
+		ppids[p->pid] = 1;
+		delete p;
+		p = t;
+	}
 }
 
 //----------------------------------------------------------------------
@@ -232,7 +263,7 @@ NachOSThread::PutThreadToSleep ()
     while ((nextThread = scheduler->SelectNextReadyThread()) == NULL)
 	interrupt->Idle();	// no one to run, wait for an interrupt
         
-    scheduler->ScheduleThread(nextThread); // returns when we've been signalled
+    scheduler->ScheduleThread(nextThread); // returns when there might be any other process that is ready to run
 }
 
 //----------------------------------------------------------------------
@@ -246,6 +277,9 @@ NachOSThread::PutThreadToSleep ()
 static void ThreadFinish()    { currentThread->FinishThread(); }
 static void InterruptEnable() { interrupt->Enable(); }
 void ThreadPrint(int arg){ NachOSThread *t = (NachOSThread *)arg; t->Print(); }
+int NachOSThread::getPPID () { 
+		return ppid; 
+}
 
 //----------------------------------------------------------------------
 // NachOSThread::CreateThreadStack
@@ -330,5 +364,24 @@ NachOSThread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
     stateRestored = true;
+}
+// function to return a pointer to the machine state of the said thread
+// can be used to fork the thread, by copying complete machine state
+int* NachOSThread::getMachineState() {
+	int* pointer = userRegisters;
+	return pointer;
+}
+
+// function to copy the machine state into another 
+void NachOSThread::copyMachineState(int* otherMachine){
+	for(int i=0; i<NumTotalRegs; i++)
+		userRegisters[i] = otherMachine[i];
+}
+void
+NachOSThread::setProcessSpace(ProcessAddressSpace* parentSpace) {
+	unsigned int numVirtualPages = 	parentSpace->getNumPages();
+	space = new ProcessAddressSpace(numVirtualPages, parentSpace->getPageTable());
+	space->InitUserModeCPURegisters();
+	space->RestoreContextOnSwitch();
 }
 #endif

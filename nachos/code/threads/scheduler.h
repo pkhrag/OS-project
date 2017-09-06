@@ -16,12 +16,20 @@
 // The following class defines the scheduler/dispatcher abstraction -- 
 // the data structures and operations needed to keep track of which 
 // thread is running, and which threads are ready but not running.
+struct ThreadNode {
+	NachOSThread *  thread;
+	int waketick;
+};
 
 class ProcessScheduler {
+	ThreadNode** sleepThreads;
+	int maxvalue;
   public:
     ProcessScheduler();			// Initialize list of ready threads 
     ~ProcessScheduler();			// De-allocate ready list
-
+	void addToSleepThreads(NachOSThread* thread, int waketick);
+	int getMinWakeTick();
+	NachOSThread* removeSleepThread();
     void MoveThreadToReadyQueue(NachOSThread* thread);	// Thread can be dispatched.
     NachOSThread* SelectNextReadyThread();		// Dequeue first thread on the ready 
 					// list, if any, and return thread.

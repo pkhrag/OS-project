@@ -54,6 +54,19 @@ static Semaphore *writeDone;
 static void ReadAvail(int arg) { readAvail->V(); }
 static void WriteDone(int arg) { writeDone->V(); }
 
+void start_fork(int which){
+	if(threadToBeDestroyed!=NULL) {
+		delete threadToBeDestroyed;
+		threadToBeDestroyed=NULL;
+	}
+#ifdef USER_PROGRAM
+	if (currentThread->space != NULL){
+		currentThread->RestoreUserState();
+	}
+#endif
+	machine->Run();
+}
+
 static void ConvertIntToHex (unsigned v, Console *console)
 {
    unsigned x;
@@ -77,6 +90,7 @@ ExceptionHandler(ExceptionType which)
     int memval, vaddr, printval, tempval, exp, userVirtualAddress, i;
 	unsigned int userVpgnumber, userOffset, userPPN, pageTableSize;
 	bool userFlag;
+	int startTick, numTicks, thisTick, lastTick;
 	TranslationEntry *userEntry, *tlb, *KernelPageTable;
     unsigned printvalus;        // Used for printing in hex
     if (!initializedConsoleSemaphores) {
@@ -229,10 +243,51 @@ ExceptionHandler(ExceptionType which)
 
 	} else if ((which == SyscallException) && (type == SysCall_Time)) {
 		machine->WriteRegister(2, stats->getTotalTicks());
-		// Advnace program counters
+	   // Advance program counters.
+       machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+       machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+       machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+	} else if ((which == SyscallException) && (type == SysCall_Sleep)) {
+		numTicks = (unsigned) machine->ReadRegister(4);
+		if(numTicks == 0){
+			currentThread->YieldCPU();
+		} else {
+			IntStatus old = interrupt->SetLevel(IntOff);
+			scheduler->addToSleepThreads(currentThread, stats->getTotalTicks()+numTicks);
+			currentThread->PutThreadToSleep();
+			interrupt->SetLevel(old);
+		}
+		// Advance program counters.
 		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
-		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg + 4));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+		
+	} else if ((which==SyscallException) && (type==SysCall_Yield)) {
+		currentThread->YieldCPU();	
+		// Advance program counters.
+		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+		
+	} else if ((which == SyscallException) && (type == SysCall_Fork)){
+		IntStatus oldLevel = interrupt->SetLevel(IntOff);
+		char* name = currentThread->getName();
+		NachOSThread * forkThread = new NachOSThread(name);
+		// Advance program counters.
+		machine->WriteRegister(2, forkThread->getPID());
+		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
+		currentThread->SaveUserState();
+		forkThread->setInstructionCount(currentThread->getIC());
+		forkThread->setProcessSpace(currentThread->getProcessSpace());
+		forkThread->copyMachineState(currentThread->getMachineState());
+		forkThread->SetRegister(2,0);
+		forkThread->RestoreUserState();
+		currentThread->RestoreUserState();
+		forkThread->ThreadFork(start_fork,0);
+		scheduler->MoveThreadToReadyQueue(forkThread);
+		(void) interrupt->SetLevel(oldLevel);
 	} else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);

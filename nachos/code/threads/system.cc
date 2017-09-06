@@ -61,8 +61,14 @@ extern void Cleanup();
 static void
 TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode)
-	interrupt->YieldOnReturn();
+	int presentTicks = stats->getTotalTicks();
+	while(presentTicks > scheduler->getMinWakeTick()){
+		NachOSThread * thread = scheduler->removeSleepThread();
+		IntStatus old = interrupt->SetLevel(IntOff);
+		scheduler->MoveThreadToReadyQueue(thread);
+		interrupt->SetLevel(old);
+	}
+    if (interrupt->getStatus() != IdleMode)	interrupt->YieldOnReturn();
 }
 
 //----------------------------------------------------------------------

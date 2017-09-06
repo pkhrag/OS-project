@@ -31,7 +31,7 @@ void
 Machine::Run()
 {
     Instruction *instr = new Instruction;  // storage for decoded instruction
-
+	currentThread->addInstruction();
     if(DebugIsEnabled('m'))
         printf("Starting thread \"%s\" at time %d\n",
 	       currentThread->getName(), stats->totalTicks);
