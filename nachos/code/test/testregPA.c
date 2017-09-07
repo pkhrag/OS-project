@@ -36,12 +36,10 @@ main()
 	syscall_wrapper_Yield();
 	syscall_wrapper_Sleep(10000);
 	syscall_wrapper_Yield();
-	syscall_wrapper_Yield();
-    syscall_wrapper_PrintString("Getting time: ");
+//	syscall_wrapper_Yield();
+  //  syscall_wrapper_PrintString("Getting time: ");
     syscall_wrapper_PrintInt(syscall_wrapper_GetTime());
     syscall_wrapper_PrintChar('\n');
-    syscall_wrapper_PrintInt(sum);
-    syscall_wrapper_PrintChar('\n');
-    syscall_wrapper_Exit(0);
+//    syscall_wrapper_Exit(0);
     return 0;
 }

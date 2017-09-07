@@ -63,6 +63,8 @@ NachOSThread::NachOSThread(char* threadName)
 	pid = counter;
 	noden->pid = pid;
 	noden->pointer = NULL;
+	noden->alive=true;
+	noden->rstatus=-1;
 	ppids[pid] = ppid;
     name = threadName;
     stackTop = NULL;
@@ -90,19 +92,24 @@ NachOSThread::NachOSThread(char* threadName)
 NachOSThread::~NachOSThread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
-
+	ASSERT(FALSE);
     ASSERT(this != currentThread);
-    if (stack != NULL)
-	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
-	pids[pid] = false;
-	NodeProcess *p = children[ppid];
-	NodeProcess *t = p;
-	while(p != NULL){
-		t = p->pointer;
-		ppids[p->pid] = 1;
-		delete p;
-		p = t;
-	}
+//    if (stack != NULL)
+//	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+//	pids[pid] = false;
+//	NodeProcess *p = children[pid];
+//	NodeProcess *t = p;
+//	while(p != NULL){
+//		t = p->pointer;
+//		ppids[p->pid] = 1;
+//		delete p;
+//		p = t;
+//	}
+//	t = children[ppid];
+//	if (t!=NULL){
+//		while((t->pointer != NULL) && (t->pid = pid))	t=t->pointer;
+//		t->rstatus = rstatus;
+//	}
 }
 
 //----------------------------------------------------------------------
@@ -378,10 +385,22 @@ void NachOSThread::copyMachineState(int* otherMachine){
 		userRegisters[i] = otherMachine[i];
 }
 void
-NachOSThread::setProcessSpace(ProcessAddressSpace* parentSpace) {
-	unsigned int numVirtualPages = 	parentSpace->getNumPages();
-	space = new ProcessAddressSpace(numVirtualPages, parentSpace->getPageTable());
-	space->InitUserModeCPURegisters();
-	space->RestoreContextOnSwitch();
+NachOSThread::setProcessSpace() {
+		space = new ProcessAddressSpace();
 }
 #endif
+// functions call for getting the process status
+bool
+NachOSThread::getProcessStatus(int inpid){
+	NodeProcess * node = children[currentThread->getPID()];
+	while((node->pointer != NULL) && (node->pid != inpid))	node = node->pointer;
+	if (node->pid == inpid)	return true;
+	return false;
+}
+
+int NachOSThread::getExitStatus(int inpid){
+	NodeProcess* node = children[currentThread->getPID()];
+	while((node->pid != inpid) && (node->pointer != NULL))
+		node = node->pointer;
+	return node->rstatus;
+}

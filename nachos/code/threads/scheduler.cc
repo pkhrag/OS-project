@@ -23,8 +23,7 @@
 #include "system.h"
 
 //----------------------------------------------------------------------
-// ProcessScheduler::ProcessScheduler
-// 	Initialize the list of ready but not running threads to empty.
+// ProcessScheduler::ProcessScheduler/ 	Initialize the list of ready but not running threads to empty.
 //----------------------------------------------------------------------
 
 ProcessScheduler::ProcessScheduler()
@@ -32,6 +31,7 @@ ProcessScheduler::ProcessScheduler()
     listOfReadyThreads = new List;
 	maxvalue = 0;
 	sleepThreads = new(ThreadNode*[MaxThreads]);
+	joinThreads = new(ThreadPointer*[MaxThreads]);
 } 
 
 //----------------------------------------------------------------------
@@ -186,4 +186,26 @@ NachOSThread* ProcessScheduler::removeSleepThread(){
 		sleepThreads[j] = tmp;
 	}
 	return minThread;
+}
+// code to add thread to wait list of another thread
+// implemented using an array of objects of type ThreadPointer
+
+void 
+ProcessScheduler::addExitListener(NachOSThread* thread, int pid){
+	ThreadPointer * n= new ThreadPointer;
+	n->thread = thread;
+	n->next = NULL;
+	ThreadPointer* t = joinThreads[pid];
+	if(t == NULL)
+		joinThreads[pid] = n;
+	else {
+		while(t->next!=NULL)	t = t->next;
+		t->next = n;
+	}
+}
+void ProcessScheduler::wakeAction(int pid){
+	ASSERT(FALSE);
+	ThreadPointer* t = joinThreads[pid];
+	while(t!=NULL)
+		MoveThreadToReadyQueue(t->thread);
 }

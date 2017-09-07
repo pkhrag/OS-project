@@ -76,6 +76,8 @@ extern void ThreadPrint(int arg);
 struct NodeProcess {
 	int pid;
 	int ppid;
+	bool alive;
+	int rstatus;
 	NodeProcess * pointer;
 };
 
@@ -87,6 +89,7 @@ class NachOSThread {
     int* stackTop;			 // the current stack pointer
     int machineState[MachineStateSize];  // all registers except for stackTop
 	int instructionCount;
+	int rstatus;
   public:
     NachOSThread(char* debugName);		// initialize a Thread 
     ~NachOSThread(); 				// deallocate a Thread
@@ -95,12 +98,14 @@ class NachOSThread {
 					// is called
 
     // basic thread operations
-
+	int setRstatus(int r){rstatus =r;}
     void ThreadFork(VoidFunctionPtr func, int arg); 	// Make thread run (*func)(arg)
     void YieldCPU();  				// Relinquish the CPU if any 
 						// other thread is runnable
     void PutThreadToSleep();  				// Put the thread to sleep and 
 						// relinquish the processor
+	bool getProcessStatus(int);
+	int getExitStatus(int);
 	void addInstruction(){instructionCount++;}
 	int getIC() { return instructionCount;}
 	void setInstructionCount(int count){instructionCount = count ;}
@@ -146,7 +151,7 @@ class NachOSThread {
 	int* getMachineState();
 	void SetRegister(int reg, int val){userRegisters[reg] = val;}
 	ProcessAddressSpace* getProcessSpace() { ProcessAddressSpace* pointer = space; return pointer;}
-	void setProcessSpace(ProcessAddressSpace*);
+	void setProcessSpace();
 #endif
 };
 
