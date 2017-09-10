@@ -403,3 +403,14 @@ int NachOSThread::getExitStatus(int inpid){
 		node = node->pointer;
 	return node->rstatus;
 }
+void NachOSThread::setExitStatus(int baap, int me, int code, bool margaya){
+    NodeProcess* bache = children[baap];
+    while(bache != NULL){
+        if (bache->pid == me) {
+            bache->rstatus = code;
+            bache->alive = FALSE;
+            break;
+        }
+        bache = bache->pointer;
+    }
+}

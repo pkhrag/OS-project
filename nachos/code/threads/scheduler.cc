@@ -31,7 +31,6 @@ ProcessScheduler::ProcessScheduler()
     listOfReadyThreads = new List;
 	maxvalue = 0;
 	sleepThreads = new(ThreadNode*[MaxThreads]);
-	joinThreads = new(ThreadPointer*[MaxThreads]);
 } 
 
 //----------------------------------------------------------------------
@@ -194,18 +193,23 @@ void
 ProcessScheduler::addExitListener(NachOSThread* thread, int pid){
 	ThreadPointer * n= new ThreadPointer;
 	n->thread = thread;
-	n->next = NULL;
-	ThreadPointer* t = joinThreads[pid];
-	if(t == NULL)
-		joinThreads[pid] = n;
-	else {
-		while(t->next!=NULL)	t = t->next;
-		t->next = n;
-	}
+	n->pid = pid;
+    ListElement *temp = new ListElement((void *)n, 0);
+    temp->next = joinThreads;
+    joinThreads = temp;
 }
-void ProcessScheduler::wakeAction(int pid){
-	ASSERT(FALSE);
-	ThreadPointer* t = joinThreads[pid];
-	while(t!=NULL)
-		MoveThreadToReadyQueue(t->thread);
+void ProcessScheduler::wakeAction(int pid, int code){
+    ListElement *t = joinThreads;
+    ThreadPointer *l; 
+	while(t!=NULL){
+        l = (ThreadPointer*)t->item; 
+        if (l->pid == pid) {
+           NachOSThread *baap = l->thread;
+#ifdef USER_PROGRAM
+           baap->SetRegister(2, code); 
+#endif
+           scheduler->MoveThreadToReadyQueue(baap); 
+        }
+        t = t->next;
+    }
 }

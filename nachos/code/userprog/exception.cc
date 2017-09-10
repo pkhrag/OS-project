@@ -287,7 +287,7 @@ ExceptionHandler(ExceptionType which)
 		currentThread->SaveUserState();
 		forkThread->ThreadFork(&start_fork,0);
 	} else if ((which==SyscallException) && (type=SysCall_NumInstr)) {
-		machine->WriteRegister(2, currentThread->getIC());
+		machine->WriteRegister(2, stats->userTicks);
 		// Advance program counters.
 		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
@@ -300,8 +300,10 @@ ExceptionHandler(ExceptionType which)
 		} else {	
 			int exitStatus = currentThread->getExitStatus(jpid);
 			if(exitStatus < 0) {
-//				scheduler->addExitListener(currentThread, jpid);
+				scheduler->addExitListener(currentThread, jpid);
+				IntStatus old = interrupt->SetLevel(IntOff);
 				currentThread->PutThreadToSleep();
+                (void) interrupt->SetLevel(old);
 			}
 			else
 				machine->WriteRegister(2,exitStatus);
@@ -310,7 +312,16 @@ ExceptionHandler(ExceptionType which)
 		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
-	} else {
+	} 
+	else if ((which == SyscallException) && (type=SysCall_Exit)) {
+        int code = machine->ReadRegister(4);
+        int me = currentThread->getPID();
+        int baap = currentThread->getPPID();
+        currentThread->setExitStatus(baap, me, code, FALSE);
+        currentThread->FinishThread();
+        scheduler->wakeAction(me, code);
+    }
+    else {
 		printf("Unexpected user mode exception %d %d\n", which, type);
 		ASSERT(FALSE);
     }

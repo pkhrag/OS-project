@@ -105,6 +105,7 @@ class NachOSThread {
     void PutThreadToSleep();  				// Put the thread to sleep and 
 						// relinquish the processor
 	bool getProcessStatus(int);
+    void setExitStatus(int, int, int, bool);
 	int getExitStatus(int);
 	void addInstruction(){instructionCount++;}
 	int getIC() { return instructionCount;}

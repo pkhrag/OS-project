@@ -23,18 +23,18 @@ struct ThreadNode {
 
 struct ThreadPointer {
 	NachOSThread* thread;
-	ThreadPointer* next;
+    int pid;
 };
 
 class ProcessScheduler {
 	ThreadNode** sleepThreads;
-	ThreadPointer** joinThreads;
+	ListElement *joinThreads;
 	int maxvalue;
   public:
     ProcessScheduler();	// Initialize list of ready threads 
     ~ProcessScheduler();// De-allocate ready list
 	void addExitListener(NachOSThread*, int);
-	void wakeAction(int);
+	void wakeAction(int, int);
 	void addToSleepThreads(NachOSThread* thread, int waketick);
 	int getMinWakeTick();
 	NachOSThread* removeSleepThread();
