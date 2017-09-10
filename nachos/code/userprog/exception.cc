@@ -286,6 +286,12 @@ ExceptionHandler(ExceptionType which)
 		machine->WriteRegister(2, forkThread->getPID());
 		currentThread->SaveUserState();
 		forkThread->ThreadFork(&start_fork,0);
+	} else if ((which==SyscallException) && (type=SysCall_NumInstr)) {
+		machine->WriteRegister(2, currentThread->getIC());
+		// Advance program counters.
+		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
+		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
+		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
 	} else if ((which == SyscallException) && (type=SysCall_Join)) {
 		int jpid = machine->ReadRegister(4);
 		bool r = currentThread->getProcessStatus(jpid);	
@@ -294,24 +300,16 @@ ExceptionHandler(ExceptionType which)
 		} else {	
 			int exitStatus = currentThread->getExitStatus(jpid);
 			if(exitStatus < 0) {
-				scheduler->addExitListener(currentThread, jpid);
+//				scheduler->addExitListener(currentThread, jpid);
 				currentThread->PutThreadToSleep();
 			}
 			else
 				machine->WriteRegister(2,exitStatus);
 		}
-		// Advance program counters.
+		// Advance program counters
 		machine->WriteRegister(PrevPCReg, machine->ReadRegister(PCReg));
 		machine->WriteRegister(PCReg, machine->ReadRegister(NextPCReg));
 		machine->WriteRegister(NextPCReg, machine->ReadRegister(NextPCReg)+4);
-	} else if ((which == SyscallException) && (type > SysCall_Exit)) {
-		ASSERT(FALSE);
-		int i = currentThread->getPID();
-		ASSERT(FALSE);
-		scheduler->wakeAction(currentThread->getPID());
-		ASSERT(FALSE);
-		threadToBeDestroyed = currentThread;
-		currentThread->YieldCPU();
 	} else {
 		printf("Unexpected user mode exception %d %d\n", which, type);
 		ASSERT(FALSE);
